@@ -1,21 +1,22 @@
 
 # chnroutes-php
 
-A PHP version chnroutes, "forked" from [chnroutes by fivesheep](https://github.com/fivesheep/chnroutes).
+Chnroutes written in PHP, forked from [chnroutes by fivesheep](https://github.com/fivesheep/chnroutes).
 
 ## Features
 
+- Supports PAC (Automatic Proxy Configuration)
 - Supports [OpenWrt](https://openwrt.org/) platform (different from general Linux platform)
-- Allows to set whitelist for passing through the VPN gateway
+- Allows to set whitelist for passing through the VPN gateway or Proxy
 
 ## Usage
 
-### Mac
-
 Run script with `php-cli` installed
 
+### Mac
+
 ```sh
-$ ./chnroutes.php mac
+$ php -f chnroutes.php mac
 ```
 
 Move scripts to PPP directory
@@ -34,10 +35,8 @@ $ sudo chmod a+x /etc/ppp/ip-down
 
 ### OpenWrt
 
-Run script with `php-cli` installed
-
 ```sh
-$ ./chnroutes.php openwrt
+$ php -f chnroutes.php openwrt
 ```
 
 Upload to router
@@ -57,7 +56,15 @@ $ chmod a+x /root/ip-pre-down
 - After WAN and before VPN, run `sh /root/ip-pre-up`
 - before VPN disconnected, run `sh /root/ip-pre-down`
 
----
+### PAC for Auto Proxy
 
-Copyright &copy; 2015 [Yuan Chong](http://chon.io/)
+```sh
+$ php -f chnroutes.php pac
+```
+
+Serve the configuration file for Automatic Proxy Configuration in your system preferences
+
+```
+pac/proxy.pac
+```
 

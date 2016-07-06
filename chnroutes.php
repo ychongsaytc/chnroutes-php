@@ -260,7 +260,7 @@ EOF;
 			'netmask' => '255.255.255.0',
 		],
 	], $ipdata );
-	$files['gfwlist.js'] = sprintf( $template, json_encode( $ipdata ) );
+	$files['proxy.pac'] = sprintf( $template, json_encode( $ipdata ) );
 	print INFO_WRITING_PAC_FILE . "\n";
 	_write_files( $files, 'pac' );
 }
