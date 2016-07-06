@@ -3,7 +3,7 @@
 /**
  * chnroutes PHP version
  *
- * @author Yuan CHong <ychongsaytc@gmail.com>
+ * @author Chon <ychongsaytc@gmail.com>
  * @copyright Young Ng <fivesheep@gmail.com>
  * @link https://github.com/fivesheep/chnroutes
  *
@@ -21,6 +21,7 @@ define( 'INFO_ANALYSING'            , '- Analysing data ...' );
 define( 'INFO_WRITING'              , '- Writing files ...' );
 define( 'INFO_WRITING_FOR_MAC'      , '- Writing files for Mac OS ...' );
 define( 'INFO_WRITING_FOR_OPENWRT'  , '- Writing files for OpenWrt ...' );
+define( 'INFO_WRITING_PAC_FILE'     , '- Generating PAC file ...' );
 define( 'INFO_DONE'                 , '- Done.' );
 
 
@@ -34,7 +35,12 @@ if ( ! isset( $argv[1] ) ) {
 /**
  * @var array configuration
  */
-$GLOBALS['config'] = require __DIR__ . '/config.php';
+$config_filepath = __DIR__ . '/config.php';
+if ( file_exists( $config_filepath ) ) {
+	$GLOBALS['config'] = require $config_filepath;
+} else {
+	$GLOBALS['config'] = require __DIR__ . '/config.sample.php';
+}
 
 
 /**
@@ -55,6 +61,9 @@ switch ( $GLOBALS['platform'] ) {
 		break;
 	case 'openwrt':
 		_generate_for_openwrt();
+		break;
+	case 'pac':
+		_generate_pac_file();
 		break;
 	case 'all':
 		_generate_for_mac();
@@ -195,5 +204,64 @@ EOF;
 	}
 	print INFO_WRITING_FOR_OPENWRT . "\n";
 	_write_files( $files, 'openwrt' );
+}
+
+
+/**
+ * process to generate PAC file
+ */
+function _generate_pac_file() {
+	$files = array();
+	$template = <<< 'EOF'
+
+var proxy_direct = 'DIRECT';
+var proxy_default = 'SOCKS5 127.0.0.1:1080; SOCKS 127.0.0.1:1080';
+
+function FindProxyForURL( url, host ) {
+	if ( false
+		|| isPlainHostName( host )
+		|| shExpMatch( host, '*.local' )
+	) {
+		return proxy_direct;
+	}
+	var ip = dnsResolve( host );
+	var ipdata = %s;
+	for ( var i in ipdata ) {
+		if ( isInNet( ip, ipdata[i].net, ipdata[i].netmask ) ) {
+			return proxy_direct;
+		}
+	}
+	return proxy_default;
+}
+
+
+EOF;
+	$ipdata = array_map( function ( $el ) {
+		return [
+			'net'     => $el['net'],
+			'netmask' => $el['netmask'],
+		];
+	}, $GLOBALS['ip_data'] );
+	$ipdata = array_merge( [
+		[
+			'net'     => '10.0.0.0',
+			'netmask' => '255.0.0.0',
+		],
+		[
+			'net'     => '172.16.0.0',
+			'netmask' => '255.240.0.0',
+		],
+		[
+			'net'     => '192.168.0.0',
+			'netmask' => '255.255.0.0',
+		],
+		[
+			'net'     => '127.0.0.0',
+			'netmask' => '255.255.255.0',
+		],
+	], $ipdata );
+	$files['gfwlist.js'] = sprintf( $template, json_encode( $ipdata ) );
+	print INFO_WRITING_PAC_FILE . "\n";
+	_write_files( $files, 'pac' );
 }
 
