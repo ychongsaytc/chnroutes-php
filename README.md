@@ -1,4 +1,8 @@
 
+## DEPRECATED
+
+This project is deprecated and no longer being maintained, please use the [overthewall](https://github.com/ychongsaytc/docker-images/tree/master/overthewall) Docker Containers instaed.
+
 # chnroutes-php
 
 Chnroutes written in PHP, forked from [chnroutes by fivesheep](https://github.com/fivesheep/chnroutes).
