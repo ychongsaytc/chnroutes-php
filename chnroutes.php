@@ -11,23 +11,35 @@
  */
 
 
+ini_set( 'display_errors', 'On' );
+error_reporting( E_ALL );
+
+
+function write_log( $content ) {
+	print "\033[32m";
+	print '- ';
+	print $content;
+	print "\033[0m";
+	print PHP_EOL;
+}
+
+
 /**
  * some UI texts
  */
-define( 'INFO_NO_PLATFORM_SPECIFIED', '- Please specify a platform.' );
-define( 'INFO_WRONG_PLATFORM'       , '- Wrong platform given.' );
-define( 'INFO_FETCHING'             , '- Fetching data from APNIC ...' );
-define( 'INFO_ANALYSING'            , '- Analysing data ...' );
-define( 'INFO_WRITING'              , '- Writing files ...' );
-define( 'INFO_WRITING_FOR_MAC'      , '- Writing files for Mac OS ...' );
-define( 'INFO_WRITING_FOR_OPENWRT'  , '- Writing files for OpenWrt ...' );
-define( 'INFO_WRITING_PAC_FILE'     , '- Generating PAC file ...' );
-define( 'INFO_DONE'                 , '- Done.' );
+define( 'INFO_NO_PLATFORM_SPECIFIED', 'Please specify a platform.' );
+define( 'INFO_WRONG_PLATFORM'       , 'Wrong platform given.' );
+define( 'INFO_FETCHING'             , 'Fetching data from APNIC ...' );
+define( 'INFO_ANALYSING'            , 'Analysing data ...' );
+define( 'INFO_WRITING_FOR_MAC'      , 'Writing files for Mac OS ...' );
+define( 'INFO_WRITING_FOR_OPENWRT'  , 'Writing files for OpenWrt ...' );
+define( 'INFO_WRITING_PAC_FILE'     , 'Writing PAC file ...' );
+define( 'INFO_DONE'                 , 'Done.' );
 
 
 /** if no arguments given */
-if ( ! isset( $argv[1] ) ) {
-	print INFO_NO_PLATFORM_SPECIFIED . "\n";
+if ( ! isset( $argv[1] ) || ! in_array( $argv[1], array( 'all', 'mac', 'openwrt', 'pac' ) ) ) {
+	write_log( INFO_NO_PLATFORM_SPECIFIED );
 	exit();
 }
 
@@ -57,7 +69,7 @@ $GLOBALS['ip_data'] = _fetch_ip_data();
 
 switch ( $GLOBALS['platform'] ) {
 	case 'mac':
-		_generate_for_mac();
+		_generate_for_macos();
 		break;
 	case 'openwrt':
 		_generate_for_openwrt();
@@ -66,15 +78,16 @@ switch ( $GLOBALS['platform'] ) {
 		_generate_pac_file();
 		break;
 	case 'all':
-		_generate_for_mac();
+		_generate_for_macos();
 		_generate_for_openwrt();
+		_generate_pac_file();
 		break;
 	default:
-		print INFO_WRONG_PLATFORM . "\n";
+		write_log( INFO_WRONG_PLATFORM );
 		break;
 }
 
-print INFO_DONE . "\n";
+write_log( INFO_DONE );
 
 
 /**
@@ -83,9 +96,9 @@ print INFO_DONE . "\n";
  * @return array the formatted data
  */
 function _fetch_ip_data() {
-	print INFO_FETCHING . "\n";
+	write_log( INFO_FETCHING );
 	$raw = file_get_contents( 'http://ftp.apnic.net/apnic/stats/apnic/delegated-apnic-latest' );
-	print INFO_ANALYSING . "\n";
+	write_log( INFO_ANALYSING );
 	$matches = array();
 	preg_match_all( '#\napnic\|CN\|ipv4\|([0-9\.]+)\|([0-9]+)\|([0-9]+)\|\S+#', $raw, $matches );
 	$data = array();
@@ -121,7 +134,7 @@ function _write_files( $files, $directory ) {
 /**
  * process to generate executable files for Mac OS X
  */
-function _generate_for_mac() {
+function _generate_for_macos() {
 	$files = array();
 	$files['ip-up'] = <<< 'EOF'
 #!/bin/sh
@@ -158,15 +171,15 @@ route delete 192.168.0.0/16 ${OLDGW}
 
 EOF;
 	foreach ( $GLOBALS['ip_data'] as $entry ) {
-		$files['ip-up'] .= sprintf( 'route add %s/%d ${OLDGW}' . "\n", $entry['net'], $entry['net_bits'] );
-		$files['ip-down'] .= sprintf( 'route delete %s/%d ${OLDGW}' . "\n", $entry['net'], $entry['net_bits'] );
+		$files['ip-up']   .= sprintf( 'route add %s/%d ${OLDGW}'    . PHP_EOL, $entry['net'], $entry['net_bits'] );
+		$files['ip-down'] .= sprintf( 'route delete %s/%d ${OLDGW}' . PHP_EOL, $entry['net'], $entry['net_bits'] );
 	}
 	foreach ( $GLOBALS['config']['whitelist'] as $net ) {
-		$files['ip-up'] .= sprintf( 'route add %s/%d ${OLDGW}' . "\n", $net, 32 );
-		$files['ip-down'] .= sprintf( 'route delete %s/%d ${OLDGW}' . "\n", $net, 32 );
+		$files['ip-up']   .= sprintf( 'route add %s/%d ${OLDGW}'    . PHP_EOL, $net, 32 );
+		$files['ip-down'] .= sprintf( 'route delete %s/%d ${OLDGW}' . PHP_EOL, $net, 32 );
 	}
-	$files['ip-down'] .= "\n" . 'rm "/tmp/pptp_original_gateway"' . "\n";
-	print INFO_WRITING_FOR_MAC . "\n";
+	$files['ip-down'] .= PHP_EOL . 'rm "/tmp/pptp_original_gateway"' . PHP_EOL;
+	write_log( INFO_WRITING_FOR_MAC );
 	_write_files( $files, 'mac' );
 }
 
@@ -195,14 +208,14 @@ export PATH="/bin:/sbin:/usr/sbin:/usr/bin"
 
 EOF;
 	foreach ( $GLOBALS['ip_data'] as $entry ) {
-		$files['ip-pre-up'] .= sprintf( 'route add -net %s netmask %s gw $OLDGW' . "\n", $entry['net'], $entry['netmask'] );
-		$files['ip-pre-down'] .= sprintf( 'route del -net %s netmask %s' . "\n", $entry['net'], $entry['netmask'] );
+		$files['ip-pre-up']   .= sprintf( 'route add -net %s netmask %s gw $OLDGW' . PHP_EOL, $entry['net'], $entry['netmask'] );
+		$files['ip-pre-down'] .= sprintf( 'route del -net %s netmask %s'           . PHP_EOL, $entry['net'], $entry['netmask'] );
 	}
 	foreach ( $GLOBALS['config']['whitelist'] as $net ) {
-		$files['ip-pre-up'] .= sprintf( 'route add -net %s netmask %s gw $OLDGW' . "\n", $net, '255.255.255.255' );
-		$files['ip-pre-down'] .= sprintf( 'route del -net %s netmask %s' . "\n", $net, '255.255.255.255' );
+		$files['ip-pre-up']   .= sprintf( 'route add -net %s netmask %s gw $OLDGW' . PHP_EOL, $net, '255.255.255.255' );
+		$files['ip-pre-down'] .= sprintf( 'route del -net %s netmask %s'           . PHP_EOL, $net, '255.255.255.255' );
 	}
-	print INFO_WRITING_FOR_OPENWRT . "\n";
+	write_log( INFO_WRITING_FOR_OPENWRT );
 	_write_files( $files, 'openwrt' );
 }
 
@@ -261,7 +274,7 @@ EOF;
 		],
 	], $ipdata );
 	$files['proxy.pac'] = sprintf( $template, json_encode( $ipdata ) );
-	print INFO_WRITING_PAC_FILE . "\n";
+	write_log( INFO_WRITING_PAC_FILE );
 	_write_files( $files, 'pac' );
 }
 
