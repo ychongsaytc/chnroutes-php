@@ -20,7 +20,7 @@ Run script with `php-cli` installed
 ### Mac
 
 ```sh
-$ php -f chnroutes.php mac
+$ php -f chnroutes.php macos
 ```
 
 Move scripts to PPP directory

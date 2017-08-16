@@ -68,7 +68,6 @@ $GLOBALS['ip_data'] = _fetch_ip_data();
 
 
 switch ( $GLOBALS['platform'] ) {
-	case 'mac':
 	case 'macos':
 		_generate_for_macos();
 		break;
@@ -107,8 +106,8 @@ function _fetch_ip_data() {
 		$ip_count = $matches[2][ $index ];
 		$netmask = implode( '.', array_map( 'hexdec', str_split( dechex( 0xffffffff ^ ( $ip_count - 1 ) ), 2 ) ) );
 		$data[] = array(
-			'net' => $matches[1][ $index ],
-			'netmask' => $netmask,
+			'net'      => $matches[1][ $index ],
+			'netmask'  => $netmask,
 			'net_bits' => ( 32 - log( $ip_count, 2 ) ),
 		);
 	}
