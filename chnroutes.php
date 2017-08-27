@@ -283,6 +283,12 @@ EOF;
 			'netmask' => '255.255.255.0',
 		],
 	], $ipdata );
+	foreach ( $GLOBALS['config']['whitelist'] as $net ) {
+		$ipdata_for_pac[] = [
+			'net'     => $net,
+			'netmask' => '255.255.255.255',
+		];
+	}
 	$files['proxy.pac']['content'] = sprintf( $template, json_encode( $ipdata_for_pac ) );
 	_write_log( INFO_WRITING_PAC_FILE );
 	_write_files( $files, 'pac' );
